@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Genre;
 use App\Models\Movie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MoviesController extends Controller
 {
@@ -17,7 +18,7 @@ class MoviesController extends Controller
 
             \Illuminate\Support\Facades\DB::enableQueryLog();
 
-            $query = Movie::with('genre');
+            $query = Movie::withh('genre');
 
             if ($genre) {
                 $query = $query->where('genre_id', $genre);
@@ -48,8 +49,11 @@ class MoviesController extends Controller
             'year'     => 'required|integer|min:1900|max:2030',
         ]);
 
-        Movie::create($validated);
+        $movie = Movie::create($validated);
 
+        Log::info('Movie saved', [
+            'id' => $movie->id,
+        ]);
         return redirect()
             ->route('movies.index')
             ->with('success', 'Movie added successfully!');
@@ -84,14 +88,16 @@ class MoviesController extends Controller
         ->with('success', 'Movie updated successfully!');
 }
 
-public function destroy(Movie $movie)
-{
-    $movie->delete();
+    public function destroy(Movie $movie)
+    {
+        abort_if($movie->genre->movies()->count() === 1, 403);
 
-    return redirect()
-        ->route('movies.index')
-        ->with('success', 'Movie deleted successfully!');
-}
+        $movie->delete();
+
+        return redirect()
+            ->route('movies.index')
+            ->with('success', 'Movie deleted successfully!');
+    }
 
 
 }
